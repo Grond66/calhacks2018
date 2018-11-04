@@ -14,9 +14,10 @@ with open("calibration.pikl") as f:
 
 namedWindow("frame", 1)
 
-def translation_matrix_from_translation_vector(tvec):
+def get_rt_matrix(rvec, tvec):
+    rmat, _ = Rodrigues(rvec)
     tvec = tvec.transpose()
-    body = np.concatenate((np.eye(3), tvec), 1);
+    body = np.concatenate((rmat, tvec), 1);
     bottom_row = np.zeros((1, 3))
     bottom_row = np.concatenate((bottom_row, np.ones((1, 1))), 1)
     return np.concatenate((body, bottom_row), 0)
@@ -27,6 +28,7 @@ while True:
     marker_corners, marker_ids, rejected_marker_corners = detectMarkers(frame, tag_dict)
 
     if len(marker_corners) <= 0:
+        frame = np.array(np.flip(frame, 1))
         imshow("frame", frame)
         if waitKey(1) & 0xff == ord('q'):
             break
@@ -51,6 +53,7 @@ while True:
     rvecs, tvecs = estimatePoseSingleMarkers(tag_corners_list, 0.03, camera_params, dist_params)
 
     if rvecs is None or tvecs is None:
+        frame = np.array(np.flip(frame, 1))
         imshow("frame", frame)
         if waitKey(1) & 0xff == ord('q'):
             break
@@ -60,6 +63,7 @@ while True:
         drawAxis(frame, camera_params, dist_params, rvecs[i], tvecs[i], 0.03)
 
     if eraser_corners is None or reference_corners is None:
+        frame = np.array(np.flip(frame, 1))
         imshow("frame", frame)
         if waitKey(1) & 0xff == ord('q'):
             break
@@ -70,13 +74,24 @@ while True:
     reference_rvec = rvecs[1]
     reference_tvec = tvecs[1]
 
-    eraser_rmat, _ = Rodrigues(eraser_rvec)
-    eraser_tmat = translation_matrix_from_translation_vector(eraser_tvec)
-    reference_rmat, _ = Rodrigues(reference_rvec)
-    reference_tmat = translation_matrix_from_translation_vector(reference_tvec)
+    eraser_x = eraser_tvec[0][0]
+    eraser_y = eraser_tvec[0][1]
+    eraser_z = eraser_tvec[0][2]
 
-    drawAxis(frame, camera_params, dist_params, eraser_rvec, eraser_tvec + np.array([0.02, 0.02, 0.02]), 0.03)
+    print("({}, {}, {})".format(eraser_x, eraser_y, eraser_z))
 
+    eraser_rt = get_rt_matrix(eraser_rvec, eraser_tvec)
+
+    #eraser_rmat, _ = Rodrigues(eraser_rvec)
+    #eraser_tmat = translation_matrix_from_translation_vector(eraser_tvec)
+    #reference_rmat, _ = Rodrigues(reference_rvec)
+    #reference_tmat = translation_matrix_from_translation_vector(reference_tvec)
+
+    print(eraser_rt)
+
+    drawAxis(frame, camera_params, dist_params, reference_rvec.transpose(), reference_tvec + np.array([0, 0.03, 0]), 0.03)
+
+    frame = np.array(np.flip(frame, 1))
     imshow("frame", frame)
     if waitKey(1) & 0xff == ord('q'):
         break
