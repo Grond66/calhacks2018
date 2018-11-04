@@ -42,12 +42,18 @@ def get_image_size():
 
 detected_boards_list = []
 detected_boards_ids_list = []
-for i in range(number_of_calibration_pictures):
+i = 0
+while i < number_of_calibration_pictures:
     board, ids = get_charuco_grid(i, number_of_calibration_pictures)
     detected_boards_list.append(board)
     detected_boards_ids_list.append(ids)
 
-reprojection_error, camera_params, dist_params, _, _ = calibrateCameraCharuco(detected_boards_list, detected_boards_ids_list, charuco_board, get_image_size(), None, None)
+    try:
+        reprojection_error, camera_params, dist_params, _, _ = calibrateCameraCharuco(detected_boards_list, detected_boards_ids_list, charuco_board, get_image_size(), None, None)
+        i = i + 1
+    except Exception as e:
+        del detected_boards_list[len(detected_boards_list)-1];
+        del detected_boards_ids_list[len(detected_boards_ids_list)-1];
 
 with open("calibration.pikl", "wb") as f:
     pickle.dump((camera_params, dist_params), f)
